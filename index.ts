@@ -193,7 +193,7 @@ export class BotSDK {
    */
   public createBot(qq: string | number) {
     ++this.botID;
-    const bot = new Robot(qq, this.http, this.botID);
+    const bot = new Robot(String(qq), this.http, this.botID);
     let botArray = this.botList.get(qq);
     if (!botArray) {
       botArray = [];

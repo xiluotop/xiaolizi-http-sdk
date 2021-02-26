@@ -52,7 +52,7 @@ export class Robot extends Event {
 
   constructor(qq: string | number, http: AxiosInstance, botID) {
     super();
-    this.qq = qq;
+    this.qq = String(qq);
     this.http = http;
     this.botID = botID;
     this.groupFunMap = new Map();
