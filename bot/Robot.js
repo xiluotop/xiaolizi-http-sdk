@@ -20,7 +20,7 @@ class Robot extends Event_1.Event {
         this.groupFunMap = null;
         this.privateCmdAction = null;
         this.groupCmdAction = null;
-        this.qq = qq;
+        this.qq = String(qq);
         this.http = http;
         this.botID = botID;
         this.groupFunMap = new Map();
@@ -127,7 +127,7 @@ class Robot extends Event_1.Event {
     }
     /**
      * 快速注册一个私聊指令并执行对应的方法
-     * @param cmd       监听的指令
+     * @param {Array<string>} cmd       监听的指令
      * @param doAction  要执行的动作，回调参数为发送者相关信息
      */
     regPrivateCmd(cmd, doAction) {
@@ -136,7 +136,7 @@ class Robot extends Event_1.Event {
     /**
      * 快速注册一个群要使用的指令并执行对应的方法
      * @param group     监听的目标群
-     * @param cmd       监听的指令
+     * @param {Array<string>} cmd       监听的指令
      * @param doAction  要执行的动作，回调参数为发送者相关信息
      */
     regGroupCmd(group, cmd, doAction) {
@@ -299,11 +299,11 @@ class Robot extends Event_1.Event {
         }
     }
     /**
-     * 赠送群礼物
+     * 赠送群礼物：此接口当前为更新，仅能送出三个鲜花
      * @param group   哪个群赠送礼物
      * @param toqq    目标 qq
      * @param pkgid   礼物 id，不传参数默认随机
-     * @return {Promise} data[0].retcode 为 0 时执行成功
+     * @return {Promise} data.retcode 为 0 时执行成功
      */
     sendGroupGift(group, toqq, pkgid = 0) {
         let pkgList = [299, 302, 280, 281, 284, 285, 286, 289, 290, 313, 307, 312, 308];

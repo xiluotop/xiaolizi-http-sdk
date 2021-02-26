@@ -167,7 +167,7 @@ class BotSDK {
                         let resData = getFormatData(data);
                         if (resData && resData.success && resData.robot !== resData.fromUser) {
                             // 获取 bot 对象并正确将消息分发下去
-                            let botArray = this.botList.get(resData.robot);
+                            let botArray = this.botList.get(String(resData.robot));
                             if (botArray) {
                                 botArray.forEach(bot => {
                                     bot.fire(resData.type, resData);
@@ -186,6 +186,7 @@ class BotSDK {
      * @param qq QQ号码
      */
     createBot(qq) {
+        qq = String(qq);
         ++this.botID;
         const bot = new Robot_1.Robot(qq, this.http, this.botID);
         let botArray = this.botList.get(qq);
@@ -201,7 +202,7 @@ class BotSDK {
      * @param botID bot的id
      */
     destroyBot(bot) {
-        let botArray = this.botList.get(bot.QQ);
+        let botArray = this.botList.get(String(bot.QQ));
         if (!botArray) {
             return;
         }
