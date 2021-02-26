@@ -1,20 +1,37 @@
 {
   "name": "xiaolizi-http-sdk",
   "version": "1.0.0",
-  "description": "",
+  "description": "内核框架为小栗子机器人，采用社区 xzfg 大佬的 http 插件进行二次封装的 sdk 开发包，主要方便直接进行机器人的操作，接口方法特性侧重于原酷Q的接口名",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc --build tsconfig.json"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/xiluotop/xiaolizi-http-sdk.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "小栗子",
+    "http",
+    "sdk",
+    "机器人",
+    "二次开发包"
+  ],
+  "author": "xiluo",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/xiluotop/xiaolizi-http-sdk/issues"
   },
-  "homepage": "https://github.com/xiluotop/xiaolizi-http-sdk#readme"
+  "homepage": "https://github.com/xiluotop/xiaolizi-http-sdk#readme",
+  "dependencies": {
+    "@types/node": "^14.14.25",
+    "axios": "^0.21.1",
+    "qs": "^6.9.6"
+  },
+  "devDependencies": {
+    "@types/qs": "^6.9.5",
+    "@typescript-eslint/eslint-plugin": "^4.14.2",
+    "@typescript-eslint/parser": "^4.14.2"
+  }
 }
