@@ -1,6 +1,6 @@
 {
   "name": "xiaolizi-http-sdk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "内核框架为小栗子机器人，采用社区 xzfg 大佬的 http 插件进行二次封装的 sdk 开发包，主要方便直接进行机器人的操作，接口方法特性侧重于原酷Q的接口名",
   "main": "index.js",
   "scripts": {
