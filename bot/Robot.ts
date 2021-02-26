@@ -170,7 +170,7 @@ export class Robot extends Event {
 
   /**
    * 快速注册一个私聊指令并执行对应的方法
-   * @param cmd       监听的指令
+   * @param {Array<string>} cmd       监听的指令
    * @param doAction  要执行的动作，回调参数为发送者相关信息
    */
   public regPrivateCmd(cmd: Array<string | number>, doAction: (pack: InfoDataPack) => void) {
@@ -180,7 +180,7 @@ export class Robot extends Event {
   /**
    * 快速注册一个群要使用的指令并执行对应的方法
    * @param group     监听的目标群
-   * @param cmd       监听的指令
+   * @param {Array<string>} cmd       监听的指令
    * @param doAction  要执行的动作，回调参数为发送者相关信息
    */
   public regGroupCmd(group: string | number, cmd: Array<string | number>, doAction: (pack: InfoDataPack) => void) {
