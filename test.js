@@ -1,17 +1,17 @@
 const BotSDK = require('./index.js').BotSDK
 const botSDK = new BotSDK('http://localhost:10429', '');
 let bot = botSDK.createBot(123456789);
-bot.onPrivateMsg = pack => {
+bot.onPrivateMsg(pack => {
   // console.log('private',pack)
-}
+})
 
-bot.onGroupMsg = pack => {
+bot.onGroupMsg(pack => {
   // console.log('group',pack)
-}
+})
 
-bot.onEventMsg = pack => {
+bot.onEventMsg(pack => {
   // console.log('event',pack)
-}
+})
 
 setTimeout(() => {
   // 私聊消息

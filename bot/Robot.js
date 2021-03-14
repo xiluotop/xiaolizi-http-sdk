@@ -14,9 +14,9 @@ class Robot extends Event_1.Event {
         this.qq = '';
         this.botID = '';
         this.http = null;
-        this._onPrivateMsg = null;
-        this._onGroupMsg = null;
-        this._onEventMsg = null;
+        this._onPrivateMsg = [];
+        this._onGroupMsg = [];
+        this._onEventMsg = [];
         this.groupFunMap = null;
         this.privateCmdAction = null;
         this.groupCmdAction = null;
@@ -28,7 +28,11 @@ class Robot extends Event_1.Event {
         this.groupCmdAction = new Map();
         this.on('PrivateMsg', pack => {
             if (this._onPrivateMsg) {
-                this._onPrivateMsg(pack);
+                this._onPrivateMsg.forEach(fun => {
+                    if (fun) {
+                        fun(pack);
+                    }
+                });
             }
             // 遍历注册指令
             this.privateCmdAction.forEach((doAction, cmdArray) => {
@@ -39,7 +43,11 @@ class Robot extends Event_1.Event {
         });
         this.on('GroupMsg', pack => {
             if (this._onGroupMsg) {
-                this._onGroupMsg(pack);
+                this._onGroupMsg.forEach(fun => {
+                    if (fun) {
+                        fun(pack);
+                    }
+                });
             }
             let groupFun = this.groupFunMap.get(String(pack.fromGroup));
             if (groupFun) {
@@ -54,7 +62,11 @@ class Robot extends Event_1.Event {
         });
         this.on('EventMsg', pack => {
             if (this._onEventMsg) {
-                this._onEventMsg(pack);
+                this._onEventMsg.forEach(fun => {
+                    if (fun) {
+                        fun(pack);
+                    }
+                });
             }
         });
     }
@@ -78,11 +90,8 @@ class Robot extends Event_1.Event {
      * }
      * ```
      */
-    set onPrivateMsg(fun) {
-        this._onPrivateMsg = fun;
-    }
-    get onPrivateMsg() {
-        return this._onPrivateMsg;
+    onPrivateMsg(fun) {
+        this._onPrivateMsg.push(fun);
     }
     /**
      * 当群聊消息触发时，回调时带回消息包
@@ -99,11 +108,8 @@ class Robot extends Event_1.Event {
      * }
      * ```
      */
-    set onGroupMsg(fun) {
-        this._onGroupMsg = fun;
-    }
-    get onGroupMsg() {
-        return this._onGroupMsg;
+    onGroupMsg(fun) {
+        this._onGroupMsg.push(fun);
     }
     /**
      * 绑定特定群组回调消息
@@ -119,11 +125,8 @@ class Robot extends Event_1.Event {
     /**
      * 当操作事件触发时，回调时带回消息包
      */
-    set onEventMsg(fun) {
-        this._onEventMsg = fun;
-    }
-    get onEventMsg() {
-        return this._onEventMsg;
+    onEventMsg(fun) {
+        this._onEventMsg.push(fun);
     }
     /**
      * 快速注册一个私聊指令并执行对应的方法

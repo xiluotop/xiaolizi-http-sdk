@@ -43,9 +43,9 @@ export class Robot extends Event {
   private qq: string | number = '';
   private botID: string = '';
   private http: AxiosInstance = null;
-  private _onPrivateMsg: Function = null;
-  private _onGroupMsg: Function = null;
-  private _onEventMsg: Function = null;
+  private _onPrivateMsg: Array<Function> = [];
+  private _onGroupMsg: Array<Function> = [];
+  private _onEventMsg: Array<Function> = [];
   private groupFunMap: Map<string | number, Function> = null;
   private privateCmdAction: Map<Array<string | number>, Function> = null;
   private groupCmdAction: Map<Array<string | number>, Function> = null;
@@ -60,7 +60,11 @@ export class Robot extends Event {
     this.groupCmdAction = new Map();
     this.on('PrivateMsg', pack => {
       if (this._onPrivateMsg) {
-        this._onPrivateMsg(pack);
+        this._onPrivateMsg.forEach(fun=>{
+          if(fun){
+            fun(pack);
+          }
+        })
       }
 
       // 遍历注册指令
@@ -73,7 +77,11 @@ export class Robot extends Event {
 
     this.on('GroupMsg', pack => {
       if (this._onGroupMsg) {
-        this._onGroupMsg(pack);
+        this._onGroupMsg.forEach(fun=>{
+          if(fun){
+            fun(pack);
+          }
+        })
       }
       let groupFun = this.groupFunMap.get(String(pack.fromGroup));
       if (groupFun) {
@@ -90,7 +98,11 @@ export class Robot extends Event {
 
     this.on('EventMsg', pack => {
       if (this._onEventMsg) {
-        this._onEventMsg(pack);
+        this._onEventMsg.forEach(fun=>{
+          if(fun){
+            fun(pack);
+          }
+        })
       }
     })
   }
@@ -117,11 +129,8 @@ export class Robot extends Event {
    * }
    * ```
    */
-  public set onPrivateMsg(fun: (pack: InfoDataPack) => void) {
-    this._onPrivateMsg = fun;
-  }
-  public get onPrivateMsg() {
-    return this._onPrivateMsg as any;
+  public onPrivateMsg(fun: (pack: InfoDataPack) => void) {
+    this._onPrivateMsg.push(fun);
   }
 
   /**
@@ -139,11 +148,8 @@ export class Robot extends Event {
    * }
    * ```
    */
-  public set onGroupMsg(fun: (pack: InfoDataPack) => void) {
-    this._onGroupMsg = fun;
-  }
-  public get onGroupMsg() {
-    return this._onGroupMsg as any;
+  public onGroupMsg(fun: (pack: InfoDataPack) => void) {
+    this._onGroupMsg.push(fun);
   }
 
   /**
@@ -161,11 +167,8 @@ export class Robot extends Event {
   /**
    * 当操作事件触发时，回调时带回消息包
    */
-  public set onEventMsg(fun: (pack: EventDataPack) => void) {
-    this._onEventMsg = fun;
-  }
-  public get onEventMsg() {
-    return this._onEventMsg as any;
+  public onEventMsg(fun: (pack: EventDataPack) => void) {
+    this._onEventMsg.push(fun);
   }
 
   /**
