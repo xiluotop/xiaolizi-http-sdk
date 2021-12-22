@@ -1,6 +1,10 @@
 import axios, { AxiosInstance } from "axios";
 import qs from 'qs'
 import { Robot } from "./bot/Robot";
+import express from 'express'
+import md5 from 'md5'
+import bp from 'body-parser'
+
 /* **************************************************************
  * 机器人的主类
  *    使用工厂模式实例化一个机器人视为开启一个机器人的操控，改机器人的
@@ -24,45 +28,45 @@ function unicode2string(unicode: string) {
  * @returns 如果找不到类型则返回null
  */
 function getFormatData(dataPack: any) {
-  if (!dataPack || !dataPack.Type) {
+  if (!dataPack || !dataPack.type) {
     return null
   }
   let formatData = new Object()
-  switch (dataPack.Type) {
+  switch (dataPack.type) {
     // 群组消息
-    case 'GroupMsg':
+    case 'groupmsg':
       Object.assign(formatData, {
-        fromUser: dataPack.FromQQ.UIN,
-        fromGroup: dataPack.FromGroup.GIN,
-        rawMessage: filterAt(dataPack.Msg.Text, dataPack.LogonQQ),
-        robot: dataPack.LogonQQ,
-        isAt: isAt(dataPack.Msg.Text, dataPack.LogonQQ),
+        fromUser: dataPack.fromqq.qq,
+        fromGroup: dataPack.fromgroup.group,
+        rawMessage: filterAt(dataPack.msg.msg, dataPack.logonqq),
+        robot: dataPack.logonqq,
+        isAt: isAt(dataPack.msg.msg, dataPack.logonqq),
         QQInfo: {
-          card: dataPack.FromQQ.Card,
-          nickname: dataPack.FromQQ.specTitle
+          card: dataPack.fromqq.card, // 群里的自定义名称
+          nickname: dataPack.fromqq.spectitle
         },
         success: true
       })
       break;
     // 私聊消息
-    case 'PrivateMsg':
+    case 'privatemsg':
       Object.assign(formatData, {
-        fromUser: dataPack.FromQQ.UIN,
-        rawMessage: filterAt(dataPack.Msg.Text, dataPack.LogonQQ),
-        robot: dataPack.LogonQQ,
-        isAt: isAt(dataPack.Msg.Text, dataPack.LogonQQ),
+        fromUser: dataPack.fromqq.qq,
+        rawMessage: filterAt(dataPack.msg.msg, dataPack.logonqq),
+        robot: dataPack.logonqq,
+        isAt: isAt(dataPack.msg.msg, dataPack.logonqq),
         QQInfo: {
-          card: dataPack.FromQQ.specTitle, // 群昵称
-          nickname: dataPack.FromQQ.NickName // QQ 昵称
+          card: dataPack.fromqq.card, // 群昵称
+          nickname: dataPack.fromqq.nickname // QQ 昵称
         },
         success: true
       })
       break;
     // 事件
-    case 'EventMsg':
+    case 'eventmsg':
       let notice_type = '';
       let sub_type = ''
-      switch (dataPack.Msg.Type) {
+      switch (dataPack.msg.type) {
         case 2:
         case 25:
           notice_type = 'group_increase'
@@ -80,27 +84,30 @@ function getFormatData(dataPack: any) {
         fromUser: {},
         fromGroup: {},
         rawMessage: '',
-        robot: dataPack.LogonQQ,
+        robot: dataPack.logonqq,
         isAt: false,
         QQInfo: {},
-        user_id: dataPack.FromQQ.UIN,
-        group_id: dataPack.FromGroup.GIN,
+        user_id: dataPack.fromqq.qq,
+        group_id: dataPack.fromgroup.group,
         notice_type,
-        nickname: dataPack.FromQQ.NickName,
+        nickname: dataPack.fromqq.nickname,
         sub_type,
         success: true
       })
       break;
   }
   Object.assign(formatData, {
-    type: dataPack.Type,
-    originMsgType: dataPack.Msg.Type
+    type: dataPack.type,
+    originMsgType: dataPack.msg.type
   })
   return formatData
 }
 
 // 过滤 @ 机器人
 function filterAt(str: string, loginQQ: string) {
+  if(!str){
+    return '';
+  }
   let reg = new RegExp(`\\[@${loginQQ}\\]`, 'g');
   return str.replace(reg, '').trim();
 }
@@ -110,7 +117,7 @@ function isAt(str: string, loginQQ: string) {
 }
 /****************************************************************/
 /**
- * 框架梁类，实例化以后以 create 方法传入 qq 号实例化一个机器人
+ * 框架类，实例化以后以 create 方法传入 qq 号实例化一个机器人
  */
 export class BotSDK {
   private http: AxiosInstance; // axios 请求的示例对象
@@ -119,21 +126,26 @@ export class BotSDK {
   /**
    * 初始化一个机器人框架
    * @param {string} url 框架所在服务器地址
-   * @param {string} pass 是否需要密码连接验证
+   * @param {string} user 用户名
+   * @param {string} pass 用户密码
+   * @param {string} uploadPath 事件上传路径，如 http://localhost:3000/botmessage 这里填 botmessage
+   * @param {number} uploadPort 事件上传端口,如 http://localhost:3000/botmessage 这里填 3000
    */
-  constructor(url: string, pass: string) {
+  constructor(url: string, user: string, pass: string, uploadPath: string, uploadPort: number = 80) {
     this.botList = new Map<string, Array<Robot>>();
     this.http = axios.create({
       baseURL: url,
       timeout: 1000 * 20 // 超时时间 20s
     })
     this.http.defaults.withCredentials = true
-    // http.post['Content-Type'] = 'application/x-www-form-urlencoded'
     // 请求拦截器,本后台管理系统的所有请求均带上 token
     this.http.interceptors.request.use(function (config) {
+      let timeStamp = Math.round(new Date().getTime() / 1000)
       config.headers = {
-        'Content-Type': 'text/html;charset=utf-8',
-        'Cookie': 'pass=' + pass
+        'Content-Type':'application/x-www-form-urlencoded',
+        'H-Auth-User': user,
+        'H-Auth-Timestamp': timeStamp,
+        'H-Auth-Signature': `${md5(user + config.url + md5(pass) + timeStamp.toString())}`
       }
       return config
     }, function (error) {
@@ -157,33 +169,39 @@ export class BotSDK {
         return Promise.reject(error)
       })
 
-    //获取会话窗口，然后进行轮询,然后分发下去数据
-    this.http.post('/allocsession').then((res) => {
-      let session_id = res[0].session_id
-      // 200 毫秒一轮询
-      setInterval(() => {
-        this.http.post('/getevent',
-          qs.stringify({
-            'sessid': session_id
-          })
-        ).then(res => {
-          // 遍历数据包然后分发下去且过滤掉自己发送的消息
-          (res as any).forEach(data => {
-            let resData = (getFormatData(data) as any)
-            if (resData && resData.success && resData.robot !== resData.fromUser) {
-              // 获取 bot 对象并正确将消息分发下去
-              let botArray = this.botList.get(String(resData.robot));
-              if (botArray) {
-                botArray.forEach(bot => {
-                  bot.fire(resData.type, resData)
-                })
-              }
-            }
-          })
-        }).catch(error => {
-          console.log(error)
-        })
-      }, 200)
+    // 创建事件上报监听服务
+    let app = express();
+    app.use(bp({
+      extended: false
+    }))
+    app.post('/' + uploadPath, (req,response) => {
+      for (let key in req.body) {
+        let res = key + req.body[key];
+        res = res.replace(/\\\\/g, '\\')
+        let obj = JSON.parse(res);
+        // 排除掉来自机器人的消息
+        if (obj.fromqq && obj.fromqq.qq == obj.logonqq) {
+          continue
+        }
+        // console.log(obj)
+        // 遍历数据包然后分发下去且过滤掉自己发送的消息
+        let resData = (getFormatData(obj) as any)
+        // console.log(resData)
+        if (resData && resData.success && resData.robot !== resData.fromUser) {
+          // 获取 bot 对象并正确将消息分发下去
+          let botArray = this.botList.get(String(resData.robot));
+          if (botArray) {
+            botArray.forEach(bot => {
+              bot.fire(resData.type, resData)
+            })
+          }
+        }
+      }
+      response.send();
+    })
+
+    app.listen(uploadPort, '0.0.0.0', () => {
+      console.log('Event upload listen start for ' + uploadPort + '...')
     })
   }
 

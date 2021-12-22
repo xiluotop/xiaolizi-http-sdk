@@ -16,7 +16,8 @@
     "http",
     "sdk",
     "机器人",
-    "二次开发包"
+    "二次开发包",
+    "xzfg"
   ],
   "author": "xiluo",
   "license": "ISC",
@@ -27,9 +28,12 @@
   "dependencies": {
     "@types/node": "^14.14.25",
     "axios": "^0.21.1",
+    "express": "^4.17.2",
+    "md5": "^2.3.0",
     "qs": "^6.9.6"
   },
   "devDependencies": {
+    "@types/express": "^4.17.13",
     "@types/qs": "^6.9.5",
     "@typescript-eslint/eslint-plugin": "^4.14.2",
     "@typescript-eslint/parser": "^4.14.2"

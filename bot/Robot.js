@@ -26,7 +26,7 @@ class Robot extends Event_1.Event {
         this.groupFunMap = new Map();
         this.privateCmdAction = new Map();
         this.groupCmdAction = new Map();
-        this.on('PrivateMsg', pack => {
+        this.on('privatemsg', pack => {
             if (this._onPrivateMsg) {
                 this._onPrivateMsg.forEach(fun => {
                     if (fun) {
@@ -41,7 +41,7 @@ class Robot extends Event_1.Event {
                 }
             });
         });
-        this.on('GroupMsg', pack => {
+        this.on('groupmsg', pack => {
             if (this._onGroupMsg) {
                 this._onGroupMsg.forEach(fun => {
                     if (fun) {
@@ -60,7 +60,7 @@ class Robot extends Event_1.Event {
                 }
             });
         });
-        this.on('EventMsg', pack => {
+        this.on('eventmsg', pack => {
             if (this._onEventMsg) {
                 this._onEventMsg.forEach(fun => {
                     if (fun) {
@@ -156,9 +156,9 @@ class Robot extends Event_1.Event {
      */
     sendPrivateMsg(toqq, text) {
         this.http.post('/sendprivatemsg', qs_1.default.stringify({
-            'fromqq': this.qq,
+            'logonqq': this.qq,
             toqq,
-            text,
+            msg: text,
         }));
     }
     /**
@@ -169,10 +169,10 @@ class Robot extends Event_1.Event {
      */
     sendGroupPrivateMsg(fromGroup, toqq, text) {
         this.http.post('/sendgrouptempmsg', qs_1.default.stringify({
-            'fromqq': this.qq,
-            'togroup': fromGroup,
+            'logonqq': this.qq,
+            'group': fromGroup,
             toqq,
-            text,
+            msg: text,
         }));
     }
     /**
@@ -183,9 +183,9 @@ class Robot extends Event_1.Event {
      */
     sendGroupMsg(toGroup, text, anonymous = false) {
         this.http.post('/sendgroupmsg', qs_1.default.stringify({
-            'fromqq': this.qq,
-            'togroup': toGroup,
-            text,
+            'logonqq': this.qq,
+            'group': toGroup,
+            msg: text,
             anonymous,
         }));
     }
@@ -198,12 +198,13 @@ class Robot extends Event_1.Event {
     sendPrivateImg(toqq, imgSrc, flashpic = false) {
         // fromtype 0 为 pic 格式 base64；2 为 url 网络图片
         if (imgSrc.indexOf('http:') != -1 || imgSrc.indexOf('https:') != -1) {
-            this.http.post('/sendprivatepic', qs_1.default.stringify({
-                'fromqq': this.qq,
+            this.http.post('/uploadfriendpic', qs_1.default.stringify({
+                'logonqq': this.qq,
                 toqq,
-                'fromtype': 2,
-                'url': imgSrc,
-                flashpic
+                'type': 'url',
+                'pic': imgSrc,
+                isflash: flashpic,
+                isgif: imgSrc.includes('.gif')
             })).then(data => {
                 data = data[0];
                 this.sendPrivateMsg(toqq, data.ret);
@@ -212,12 +213,13 @@ class Robot extends Event_1.Event {
             });
         }
         else {
-            this.http.post('/sendprivatepic', qs_1.default.stringify({
-                'fromqq': this.qq,
+            this.http.post('/uploadfriendpic', qs_1.default.stringify({
+                'logonqq': this.qq,
                 toqq,
-                'fromtype': 0,
+                'type': 'path',
                 'pic': imgSrc,
-                flashpic
+                isflash: flashpic,
+                isgif: imgSrc.includes('.gif')
             })).then(data => {
                 data = data[0];
                 this.sendPrivateMsg(toqq, data.ret);
@@ -236,12 +238,13 @@ class Robot extends Event_1.Event {
     sendGroupPrivateImg(fromGroup, toqq, imgSrc, flashpic = false) {
         // fromtype 0 为 pic 格式 base64；2 为 url 网络图片
         if (imgSrc.indexOf('http:') != -1 || imgSrc.indexOf('https:') != -1) {
-            this.http.post('/sendprivatepic', qs_1.default.stringify({
-                'fromqq': this.qq,
+            this.http.post('/uploadfriendpic', qs_1.default.stringify({
+                'logonqq': this.qq,
                 toqq,
-                'fromtype': 2,
-                'url': imgSrc,
-                flashpic
+                'type': 'url',
+                'pic': imgSrc,
+                isflash: flashpic,
+                isgif: imgSrc.includes('.gif')
             })).then(data => {
                 data = data[0];
                 this.sendGroupPrivateMsg(fromGroup, toqq, data.ret);
@@ -250,12 +253,13 @@ class Robot extends Event_1.Event {
             });
         }
         else {
-            this.http.post('/sendprivatepic', qs_1.default.stringify({
-                'fromqq': this.qq,
+            this.http.post('/uploadfriendpic', qs_1.default.stringify({
+                'logonqq': this.qq,
                 toqq,
-                'fromtype': 0,
+                'type': 'path',
                 'pic': imgSrc,
-                flashpic
+                isflash: flashpic,
+                isgif: imgSrc.includes('.gif')
             })).then(data => {
                 data = data[0];
                 this.sendGroupPrivateMsg(fromGroup, toqq, data.ret);
@@ -273,12 +277,13 @@ class Robot extends Event_1.Event {
     sendGroupImg(togroup, imgSrc, flashpic = false) {
         // fromtype 0 为 pic 格式 base64；2 为 url 网络图片
         if (imgSrc.indexOf('http:') != -1 || imgSrc.indexOf('https:') != -1) {
-            this.http.post('/sendgrouppic', qs_1.default.stringify({
-                'fromqq': this.qq,
-                togroup,
-                'fromtype': 2,
-                'url': imgSrc,
-                flashpic
+            this.http.post('/uploadgrouppic', qs_1.default.stringify({
+                'logonqq': this.qq,
+                group: togroup,
+                'type': 'url',
+                'pic': imgSrc,
+                isflash: flashpic,
+                isgif: imgSrc.includes('.gif')
             })).then(data => {
                 data = data[0];
                 this.sendGroupMsg(togroup, data.ret);
@@ -287,12 +292,13 @@ class Robot extends Event_1.Event {
             });
         }
         else {
-            this.http.post('/sendgrouppic', qs_1.default.stringify({
-                'fromqq': this.qq,
-                togroup,
-                'fromtype': 0,
+            this.http.post('/uploadgrouppic', qs_1.default.stringify({
+                'logonqq': this.qq,
+                group: togroup,
+                'type': 'path',
                 'pic': imgSrc,
-                flashpic
+                isflash: flashpic,
+                isgif: imgSrc.includes('.gif')
             })).then(data => {
                 data = data[0];
                 this.sendGroupMsg(togroup, data.ret);
@@ -300,26 +306,6 @@ class Robot extends Event_1.Event {
                 console.log(data);
             });
         }
-    }
-    /**
-     * 赠送群礼物：此接口当前为更新，仅能送出三个鲜花
-     * @param group   哪个群赠送礼物
-     * @param toqq    目标 qq
-     * @param pkgid   礼物 id，不传参数默认随机
-     * @return {Promise} data.retcode 为 0 时执行成功
-     */
-    sendGroupGift(group, toqq, pkgid = 0) {
-        let pkgList = [299, 302, 280, 281, 284, 285, 286, 289, 290, 313, 307, 312, 308];
-        if (!pkgid) {
-            let index = Math.floor(Math.random() * (pkgList.length - 1 - 0 + 1) + 0);
-            pkgid = pkgList[index];
-        }
-        return this.http.post('/sendfreepackage', qs_1.default.stringify({
-            'fromqq': this.qq,
-            group,
-            toqq,
-            pkgid
-        })).then(data => { data = data[0]; data.ret = JSON.parse(data.ret); return data.ret; });
     }
 }
 exports.Robot = Robot;
