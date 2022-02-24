@@ -165,12 +165,14 @@ class Robot extends Event_1.Event {
      * 发送好友私聊消息
      * @param toqq 目标 QQ
      * @param text 发送的文本
+     * @param type 文本类型：xml,json,可不传
      */
-    sendPrivateMsg(toqq, text) {
+    sendPrivateMsg(toqq, text, type = '') {
         this.http.post('/sendprivatemsg', qs_1.default.stringify({
             'logonqq': this.qq,
             toqq,
             msg: text,
+            type
         }));
     }
     /**
@@ -192,13 +194,15 @@ class Robot extends Event_1.Event {
      * @param toGroup 目标群
      * @param text 文本
      * @param anonymous 是否匿名，默认：false
+     * @param type 文本类型：xml,json,可不传
      */
-    sendGroupMsg(toGroup, text, anonymous = false) {
+    sendGroupMsg(toGroup, text, anonymous = false, type = '') {
         this.http.post('/sendgroupmsg', qs_1.default.stringify({
             'logonqq': this.qq,
             'group': toGroup,
             msg: text,
             anonymous,
+            type
         }));
     }
     /**

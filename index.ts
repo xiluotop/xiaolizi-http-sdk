@@ -214,7 +214,7 @@ export class BotSDK {
       // 没有上报地址则使用 ws
       let initWs = () => {
         timeCount = 0;
-        ws = new WebSocket(`ws://localhost:52566/ws?user=${user}&timestamp=${timeStamp}&signature=${md5(user + "/ws" + md5(pass) + timeStamp.toString())}`)
+        ws = new WebSocket(`ws://localhost:${url.split(':')[2]}/ws?user=${user}&timestamp=${timeStamp}&signature=${md5(user + "/ws" + md5(pass) + timeStamp.toString())}`)
         console.log('ws started ...');
       }
       initWs();

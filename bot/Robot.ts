@@ -211,13 +211,15 @@ export class Robot extends Event {
    * 发送好友私聊消息
    * @param toqq 目标 QQ
    * @param text 发送的文本
+   * @param type 文本类型：xml,json,可不传
    */
-  public sendPrivateMsg(toqq: string | number, text: string) {
+  public sendPrivateMsg(toqq: string | number, text: string,type:string = '') {
     this.http.post('/sendprivatemsg',
       qs.stringify({
         'logonqq': this.qq,
         toqq,
         msg:text,
+        type
       })
     )
   }
@@ -244,14 +246,16 @@ export class Robot extends Event {
    * @param toGroup 目标群
    * @param text 文本
    * @param anonymous 是否匿名，默认：false
+   * @param type 文本类型：xml,json,可不传
    */
-  public sendGroupMsg(toGroup: string | number, text: string, anonymous: boolean = false) {
+  public sendGroupMsg(toGroup: string | number, text: string, anonymous: boolean = false,type:string = '') {
     this.http.post('/sendgroupmsg',
       qs.stringify({
         'logonqq': this.qq,
         'group': toGroup,
         msg:text,
         anonymous,
+        type
       })
     )
   }

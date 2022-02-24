@@ -208,7 +208,7 @@ class BotSDK {
             // 没有上报地址则使用 ws
             let initWs = () => {
                 timeCount = 0;
-                ws = new ws_1.default(`ws://localhost:52566/ws?user=${user}&timestamp=${timeStamp}&signature=${md5_1.default(user + "/ws" + md5_1.default(pass) + timeStamp.toString())}`);
+                ws = new ws_1.default(`ws://localhost:${url.split(':')[2]}/ws?user=${user}&timestamp=${timeStamp}&signature=${md5_1.default(user + "/ws" + md5_1.default(pass) + timeStamp.toString())}`);
                 console.log('ws started ...');
             };
             initWs();
