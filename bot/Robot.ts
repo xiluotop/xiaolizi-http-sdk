@@ -107,10 +107,23 @@ export class Robot extends Event {
     })
   }
 
+  /**
+   * 返回实例化机器人的请求器
+   */
+  public get httpRequest(){
+    return this.http
+  }
+
+  /**
+   * 返回机器人序号 ID
+   */
   public get id() {
     return this.botID
   }
 
+  /**
+   * 返回机器人 QQ 号
+   */
   public get QQ() {
     return this.qq
   }

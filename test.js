@@ -7,7 +7,13 @@ const BotSDK = require('./index.js').BotSDK
  * 路径就是 botmsg
  * 端口就是 8888
  */
-const botSDK = new BotSDK('http://localhost:52566','test','test','botmsg',8888);
+// const botSDK = new BotSDK('http://localhost:52566','test','test','botmsg',8888);
+
+/**
+ * 只传入监听地址则启用 ws 监听
+ * 如有验证，则直接进行配置即可
+ */
+const botSDK = new BotSDK('http://localhost:52566');
 let bot = botSDK.createBot(123456789);
 
 // 监听所有私聊消息
@@ -59,5 +65,16 @@ setTimeout(() => {
   //   console.log(data)
   // })
 
+  // 使用 http 方式请求发送语音
+  // bot.httpRequest.post('/uploadgroupaudio', qs.stringify({
+  //   logonqq: bot.QQ,
+  //   group:626177973,
+  //   audiotype:'audio',
+  //   type:'url',
+  //   audio:'https://jiangck.com/resource/%E8%B4%B9%E7%8E%89%E6%B8%85-%E4%B8%80%E5%89%AA%E6%A2%85.amr',
+  // })).then(res=>{
+  //   console.log(res)
+  //   bot.sendGroupMsg(626177973,res[0].ret)
+  // })
   console.log('执行成功')
 }, 2000)

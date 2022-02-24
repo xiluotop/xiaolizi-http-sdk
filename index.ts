@@ -4,6 +4,8 @@ import { Robot } from "./bot/Robot";
 import express from 'express'
 import md5 from 'md5'
 import bp from 'body-parser'
+import WebSocket from 'ws'
+import { time } from "console";
 
 /* **************************************************************
  * 机器人的主类
@@ -105,7 +107,7 @@ function getFormatData(dataPack: any) {
 
 // 过滤 @ 机器人
 function filterAt(str: string, loginQQ: string) {
-  if(!str){
+  if (!str) {
     return '';
   }
   let reg = new RegExp(`\\[@${loginQQ}\\]`, 'g');
@@ -131,7 +133,7 @@ export class BotSDK {
    * @param {string} uploadPath 事件上传路径，如 http://localhost:3000/botmessage 这里填 botmessage
    * @param {number} uploadPort 事件上传端口,如 http://localhost:3000/botmessage 这里填 3000
    */
-  constructor(url: string, user: string, pass: string, uploadPath: string, uploadPort: number = 80) {
+  constructor(url: string, user: string = "", pass: string = "", uploadPath: string, uploadPort: number = 80) {
     this.botList = new Map<string, Array<Robot>>();
     this.http = axios.create({
       baseURL: url,
@@ -142,10 +144,10 @@ export class BotSDK {
     this.http.interceptors.request.use(function (config) {
       let timeStamp = Math.round(new Date().getTime() / 1000)
       config.headers = {
-        'Content-Type':'application/x-www-form-urlencoded',
+        'Content-Type': 'application/x-www-form-urlencoded',
         'H-Auth-User': user,
         'H-Auth-Timestamp': timeStamp,
-        'H-Auth-Signature': `${md5(user + config.url + md5(pass) + timeStamp.toString())}`
+        'H-Auth-Signature': `${md5(user + config.url + md5(pass) + timeStamp.toString())}`,
       }
       return config
     }, function (error) {
@@ -169,40 +171,111 @@ export class BotSDK {
         return Promise.reject(error)
       })
 
-    // 创建事件上报监听服务
-    let app = express();
-    app.use(bp({
-      extended: false
-    }))
-    app.post('/' + uploadPath, (req,response) => {
-      for (let key in req.body) {
-        let res = key + req.body[key];
-        res = res.replace(/\\\\/g, '\\')
-        let obj = JSON.parse(res);
-        // 排除掉来自机器人的消息
-        if (obj.fromqq && obj.fromqq.qq == obj.logonqq) {
-          continue
-        }
-        // console.log(obj)
-        // 遍历数据包然后分发下去且过滤掉自己发送的消息
-        let resData = (getFormatData(obj) as any)
-        // console.log(resData)
-        if (resData && resData.success && resData.robot !== resData.fromUser) {
-          // 获取 bot 对象并正确将消息分发下去
-          let botArray = this.botList.get(String(resData.robot));
-          if (botArray) {
-            botArray.forEach(bot => {
-              bot.fire(resData.type, resData)
-            })
+    // 有设置上报地址则采用
+    if (uploadPath && uploadPort) {
+      // 创建事件上报监听服务
+      let app = express();
+      app.use(bp({
+        extended: false
+      }))
+      app.post('/' + uploadPath, (req, response) => {
+        for (let key in req.body) {
+          let res = key + req.body[key];
+          res = res.replace(/\\\\/g, '\\')
+          let obj = JSON.parse(res);
+          // 排除掉来自机器人的消息
+          if (obj.fromqq && obj.fromqq.qq == obj.logonqq) {
+            continue
+          }
+          // console.log(obj)
+          // 遍历数据包然后分发下去且过滤掉自己发送的消息
+          let resData = (getFormatData(obj) as any)
+          // console.log(resData)
+          if (resData && resData.success && resData.robot !== resData.fromUser) {
+            // 获取 bot 对象并正确将消息分发下去
+            let botArray = this.botList.get(String(resData.robot));
+            if (botArray) {
+              botArray.forEach(bot => {
+                bot.fire(resData.type, resData)
+              })
+            }
           }
         }
-      }
-      response.send();
-    })
+        response.send();
+      })
 
-    app.listen(uploadPort, '0.0.0.0', () => {
-      console.log('Event upload listen start for ' + uploadPort + '...')
-    })
+      app.listen(uploadPort, '0.0.0.0', () => {
+        console.log('Event upload listen start for ' + uploadPort + '...')
+      })
+    } else {
+      let timeStamp = Math.round(new Date().getTime() / 1000)
+      let ws: WebSocket = null;
+      let timeCount = 0;
+      // 没有上报地址则使用 ws
+      let initWs = () => {
+        timeCount = 0;
+        ws = new WebSocket(`ws://localhost:52566/ws?user=${user}&timestamp=${timeStamp}&signature=${md5(user + "/ws" + md5(pass) + timeStamp.toString())}`)
+        console.log('ws started ...');
+      }
+      initWs();
+      // 接受信息
+      ws.on('message', (message: String) => {
+        if(message.toString()=='{"type":"heartbeatreply"}'){
+          // 返回的心跳检测数据
+          return;
+        }
+        let data = message.toString().replace(/\\\\/g, '\\');
+        let originData: Array<any> = null;
+        if (data && 'string' == typeof data) {
+          let res = data.split('\n')
+          res.forEach((elm, index) => {
+            res[index] = JSON.parse(unicode2string(elm))
+          })
+          originData = res
+        } else {
+          originData = data ? [JSON.parse(unicode2string(JSON.stringify(data)))] : [];
+        }
+        for (let key in originData) {
+          let obj = originData[key];
+          // 排除掉来自机器人的消息
+          if (obj.fromqq && obj.fromqq.qq == obj.logonqq) {
+            continue
+          }
+          // console.log(obj)
+          // 遍历数据包然后分发下去且过滤掉自己发送的消息
+          let resData = (getFormatData(obj) as any)
+          // console.log(resData)
+          if (resData && resData.success && resData.robot !== resData.fromUser) {
+            // 获取 bot 对象并正确将消息分发下去
+            let botArray = this.botList.get(String(resData.robot));
+            if (botArray) {
+              botArray.forEach(bot => {
+                bot.fire(resData.type, resData)
+              })
+            }
+          }
+        }
+      })
+      ws.on('error', error => {
+        console.log('Error:', error)
+        console.log('connect closed and will reconnect ws...');
+        if (ws.CLOSED) {
+          initWs();
+        }
+      })
+      ws.on('close', info => {
+        console.log('connect closed ... info:' + info + ' , will reconnect ws...');
+        initWs();
+      })
+  
+      setInterval(() => {
+        timeCount+=5;
+        if (ws.readyState == ws.OPEN) {
+          ws.send(`method=heartbeat&user=${user}&timestamp=${timeStamp}&signature=${md5(user + "/ws" + md5(pass) + timeStamp.toString())}`)
+          // console.log('send heart , ws hold '+ timeCount + 's ...')
+        }
+      }, 5000)
+    }
   }
 
   /**

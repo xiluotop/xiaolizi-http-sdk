@@ -70,9 +70,21 @@ class Robot extends Event_1.Event {
             }
         });
     }
+    /**
+     * 返回实例化机器人的请求器
+     */
+    get httpRequest() {
+        return this.http;
+    }
+    /**
+     * 返回机器人序号 ID
+     */
     get id() {
         return this.botID;
     }
+    /**
+     * 返回机器人 QQ 号
+     */
     get QQ() {
         return this.qq;
     }

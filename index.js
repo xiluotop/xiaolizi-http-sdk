@@ -8,6 +8,7 @@ const Robot_1 = require("./bot/Robot");
 const express_1 = __importDefault(require("express"));
 const md5_1 = __importDefault(require("md5"));
 const body_parser_1 = __importDefault(require("body-parser"));
+const ws_1 = __importDefault(require("ws"));
 /* **************************************************************
  * 机器人的主类
  *    使用工厂模式实例化一个机器人视为开启一个机器人的操控，改机器人的
@@ -128,7 +129,7 @@ class BotSDK {
      * @param {string} uploadPath 事件上传路径，如 http://localhost:3000/botmessage 这里填 botmessage
      * @param {number} uploadPort 事件上传端口,如 http://localhost:3000/botmessage 这里填 3000
      */
-    constructor(url, user, pass, uploadPath, uploadPort = 80) {
+    constructor(url, user = "", pass = "", uploadPath, uploadPort = 80) {
         this.botID = 0; // bot ID
         this.botList = new Map();
         this.http = axios_1.default.create({
@@ -143,7 +144,7 @@ class BotSDK {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'H-Auth-User': user,
                 'H-Auth-Timestamp': timeStamp,
-                'H-Auth-Signature': `${md5_1.default(user + config.url + md5_1.default(pass) + timeStamp.toString())}`
+                'H-Auth-Signature': `${md5_1.default(user + config.url + md5_1.default(pass) + timeStamp.toString())}`,
             };
             return config;
         }, function (error) {
@@ -164,39 +165,111 @@ class BotSDK {
             // axios请求服务器端发生错误的处理
             return Promise.reject(error);
         });
-        // 创建事件上报监听服务
-        let app = express_1.default();
-        app.use(body_parser_1.default({
-            extended: false
-        }));
-        app.post('/' + uploadPath, (req, response) => {
-            for (let key in req.body) {
-                let res = key + req.body[key];
-                res = res.replace(/\\\\/g, '\\');
-                let obj = JSON.parse(res);
-                // 排除掉来自机器人的消息
-                if (obj.fromqq && obj.fromqq.qq == obj.logonqq) {
-                    continue;
-                }
-                // console.log(obj)
-                // 遍历数据包然后分发下去且过滤掉自己发送的消息
-                let resData = getFormatData(obj);
-                // console.log(resData)
-                if (resData && resData.success && resData.robot !== resData.fromUser) {
-                    // 获取 bot 对象并正确将消息分发下去
-                    let botArray = this.botList.get(String(resData.robot));
-                    if (botArray) {
-                        botArray.forEach(bot => {
-                            bot.fire(resData.type, resData);
-                        });
+        // 有设置上报地址则采用
+        if (uploadPath && uploadPort) {
+            // 创建事件上报监听服务
+            let app = express_1.default();
+            app.use(body_parser_1.default({
+                extended: false
+            }));
+            app.post('/' + uploadPath, (req, response) => {
+                for (let key in req.body) {
+                    let res = key + req.body[key];
+                    res = res.replace(/\\\\/g, '\\');
+                    let obj = JSON.parse(res);
+                    // 排除掉来自机器人的消息
+                    if (obj.fromqq && obj.fromqq.qq == obj.logonqq) {
+                        continue;
+                    }
+                    // console.log(obj)
+                    // 遍历数据包然后分发下去且过滤掉自己发送的消息
+                    let resData = getFormatData(obj);
+                    // console.log(resData)
+                    if (resData && resData.success && resData.robot !== resData.fromUser) {
+                        // 获取 bot 对象并正确将消息分发下去
+                        let botArray = this.botList.get(String(resData.robot));
+                        if (botArray) {
+                            botArray.forEach(bot => {
+                                bot.fire(resData.type, resData);
+                            });
+                        }
                     }
                 }
-            }
-            response.send();
-        });
-        app.listen(uploadPort, '0.0.0.0', () => {
-            console.log('Event upload listen start for ' + uploadPort + '...');
-        });
+                response.send();
+            });
+            app.listen(uploadPort, '0.0.0.0', () => {
+                console.log('Event upload listen start for ' + uploadPort + '...');
+            });
+        }
+        else {
+            let timeStamp = Math.round(new Date().getTime() / 1000);
+            let ws = null;
+            let timeCount = 0;
+            // 没有上报地址则使用 ws
+            let initWs = () => {
+                timeCount = 0;
+                ws = new ws_1.default(`ws://localhost:52566/ws?user=${user}&timestamp=${timeStamp}&signature=${md5_1.default(user + "/ws" + md5_1.default(pass) + timeStamp.toString())}`);
+                console.log('ws started ...');
+            };
+            initWs();
+            // 接受信息
+            ws.on('message', (message) => {
+                if (message.toString() == '{"type":"heartbeatreply"}') {
+                    // 返回的心跳检测数据
+                    return;
+                }
+                let data = message.toString().replace(/\\\\/g, '\\');
+                let originData = null;
+                if (data && 'string' == typeof data) {
+                    let res = data.split('\n');
+                    res.forEach((elm, index) => {
+                        res[index] = JSON.parse(unicode2string(elm));
+                    });
+                    originData = res;
+                }
+                else {
+                    originData = data ? [JSON.parse(unicode2string(JSON.stringify(data)))] : [];
+                }
+                for (let key in originData) {
+                    let obj = originData[key];
+                    // 排除掉来自机器人的消息
+                    if (obj.fromqq && obj.fromqq.qq == obj.logonqq) {
+                        continue;
+                    }
+                    // console.log(obj)
+                    // 遍历数据包然后分发下去且过滤掉自己发送的消息
+                    let resData = getFormatData(obj);
+                    // console.log(resData)
+                    if (resData && resData.success && resData.robot !== resData.fromUser) {
+                        // 获取 bot 对象并正确将消息分发下去
+                        let botArray = this.botList.get(String(resData.robot));
+                        if (botArray) {
+                            botArray.forEach(bot => {
+                                bot.fire(resData.type, resData);
+                            });
+                        }
+                    }
+                }
+            });
+            ws.on('error', error => {
+                console.log('Error:', error);
+                console.log('connect closed and will reconnect ws...');
+                if (ws.CLOSED) {
+                    initWs();
+                }
+            });
+            ws.on('close', info => {
+                console.log('connect closed ... info:' + info + ' , will reconnect ws...');
+                initWs();
+            });
+            setInterval(() => {
+                timeCount += 5;
+                if (ws.readyState == ws.OPEN) {
+                    ws.send(`method=heartbeat&user=${user}&timestamp=${timeStamp}&signature=${md5_1.default(user + "/ws" + md5_1.default(pass) + timeStamp.toString())}`);
+                    // console.log('send heart , ws hold '+ timeCount + 's ...')
+                }
+            }, 5000);
+        }
     }
     /**
      * 创建一个 bot
