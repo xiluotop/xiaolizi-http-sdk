@@ -157,14 +157,23 @@ export class BotSDK {
 
     // 响应拦截器,不要那么多复杂数据了直接返回 data 就行
     this.http.interceptors.response.use(function (response): any {
-      if (response.data && 'string' == typeof response.data) {
-        let res = response.data.split('\n')
-        res.forEach((elm, index) => {
-          res[index] = JSON.parse(unicode2string(elm))
-        })
-        return res
+      let returnData = null
+      try {
+        if (response.data && 'string' == typeof response.data) {
+          let res = response.data.split('\n');
+          res.forEach((elm, index) => {
+            res[index] = JSON.parse(unicode2string(elm));
+          });
+          return res;
+        }
+        returnData = response.data ? [JSON.parse(unicode2string(JSON.stringify(response.data)))] : [];
+        if (returnData.length == 1) {
+          returnData = returnData[0];
+        }
+      } catch (error) {
+        returnData = response.data
       }
-      return response.data ? [JSON.parse(unicode2string(JSON.stringify(response.data)))] : []
+      return returnData;
     },
       function (error) {
         // axios请求服务器端发生错误的处理
@@ -220,7 +229,7 @@ export class BotSDK {
       initWs();
       // 接受信息
       ws.on('message', (message: String) => {
-        if(message.toString()=='{"type":"heartbeatreply"}'){
+        if (message.toString() == '{"type":"heartbeatreply"}') {
           // 返回的心跳检测数据
           return;
         }
@@ -267,9 +276,9 @@ export class BotSDK {
         console.log('connect closed ... info:' + info + ' , will reconnect ws...');
         initWs();
       })
-  
+
       setInterval(() => {
-        timeCount+=5;
+        timeCount += 5;
         if (ws.readyState == ws.OPEN) {
           ws.send(`method=heartbeat&user=${user}&timestamp=${timeStamp}&signature=${md5(user + "/ws" + md5(pass) + timeStamp.toString())}`)
           // console.log('send heart , ws hold '+ timeCount + 's ...')

@@ -222,7 +222,6 @@ class Robot extends Event_1.Event {
                 isflash: flashpic,
                 isgif: imgSrc.includes('.gif')
             })).then(data => {
-                data = data[0];
                 this.sendPrivateMsg(toqq, data.ret);
             }).catch(data => {
                 console.log(data);
@@ -237,7 +236,6 @@ class Robot extends Event_1.Event {
                 isflash: flashpic,
                 isgif: imgSrc.includes('.gif')
             })).then(data => {
-                data = data[0];
                 this.sendPrivateMsg(toqq, data.ret);
             }).catch(data => {
                 console.log(data);
@@ -262,7 +260,6 @@ class Robot extends Event_1.Event {
                 isflash: flashpic,
                 isgif: imgSrc.includes('.gif')
             })).then(data => {
-                data = data[0];
                 this.sendGroupPrivateMsg(fromGroup, toqq, data.ret);
             }).catch(data => {
                 console.log(data);
@@ -277,7 +274,6 @@ class Robot extends Event_1.Event {
                 isflash: flashpic,
                 isgif: imgSrc.includes('.gif')
             })).then(data => {
-                data = data[0];
                 this.sendGroupPrivateMsg(fromGroup, toqq, data.ret);
             }).catch(data => {
                 console.log(data);
@@ -301,7 +297,6 @@ class Robot extends Event_1.Event {
                 isflash: flashpic,
                 isgif: imgSrc.includes('.gif')
             })).then(data => {
-                data = data[0];
                 this.sendGroupMsg(togroup, data.ret);
             }).catch(data => {
                 console.log(data);
@@ -316,7 +311,6 @@ class Robot extends Event_1.Event {
                 isflash: flashpic,
                 isgif: imgSrc.includes('.gif')
             })).then(data => {
-                data = data[0];
                 this.sendGroupMsg(togroup, data.ret);
             }).catch(data => {
                 console.log(data);

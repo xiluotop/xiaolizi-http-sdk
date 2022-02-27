@@ -153,14 +153,24 @@ class BotSDK {
         });
         // 响应拦截器,不要那么多复杂数据了直接返回 data 就行
         this.http.interceptors.response.use(function (response) {
-            if (response.data && 'string' == typeof response.data) {
-                let res = response.data.split('\n');
-                res.forEach((elm, index) => {
-                    res[index] = JSON.parse(unicode2string(elm));
-                });
-                return res;
+            let returnData = null;
+            try {
+                if (response.data && 'string' == typeof response.data) {
+                    let res = response.data.split('\n');
+                    res.forEach((elm, index) => {
+                        res[index] = JSON.parse(unicode2string(elm));
+                    });
+                    return res;
+                }
+                returnData = response.data ? [JSON.parse(unicode2string(JSON.stringify(response.data)))] : [];
+                if (returnData.length == 1) {
+                    returnData = returnData[0];
+                }
             }
-            return response.data ? [JSON.parse(unicode2string(JSON.stringify(response.data)))] : [];
+            catch (error) {
+                returnData = response.data;
+            }
+            return returnData;
         }, function (error) {
             // axios请求服务器端发生错误的处理
             return Promise.reject(error);

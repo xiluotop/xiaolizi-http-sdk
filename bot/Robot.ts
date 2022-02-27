@@ -279,7 +279,6 @@ export class Robot extends Event {
           isgif:imgSrc.includes('.gif')
         })
       ).then(data => {
-        data = data[0]
         this.sendPrivateMsg(toqq, (data as any).ret);
       }).catch(data => {
         console.log(data)
@@ -295,7 +294,6 @@ export class Robot extends Event {
           isgif:imgSrc.includes('.gif')
         })
       ).then(data => {
-        data = data[0]
         this.sendPrivateMsg(toqq, (data as any).ret);
       }).catch(data => {
         console.log(data)
@@ -323,7 +321,6 @@ export class Robot extends Event {
           isgif:imgSrc.includes('.gif')
         })
       ).then(data => {
-        data = data[0]
         this.sendGroupPrivateMsg(fromGroup, toqq, (data as any).ret);
       }).catch(data => {
         console.log(data)
@@ -339,7 +336,6 @@ export class Robot extends Event {
           isgif:imgSrc.includes('.gif')
         })
       ).then(data => {
-        data = data[0]
         this.sendGroupPrivateMsg(fromGroup, toqq, (data as any).ret);
       }).catch(data => {
         console.log(data)
@@ -366,7 +362,6 @@ export class Robot extends Event {
           isgif:imgSrc.includes('.gif')
         })
       ).then(data => {
-        data = data[0]
         this.sendGroupMsg(togroup, (data as any).ret)
       }).catch(data => {
         console.log(data)
@@ -382,7 +377,6 @@ export class Robot extends Event {
           isgif:imgSrc.includes('.gif')
         })
       ).then(data => {
-        data = data[0]
         this.sendGroupMsg(togroup, (data as any).ret)
       }).catch(data => {
         console.log(data)
