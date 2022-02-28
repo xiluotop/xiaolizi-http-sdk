@@ -203,7 +203,9 @@ class Robot extends Event_1.Event {
             msg: text,
             anonymous,
             type
-        }));
+        })).catch(err => {
+            console.log('错误', err);
+        });
     }
     /**
      * 私聊发送图片

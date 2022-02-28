@@ -188,6 +188,7 @@ export class BotSDK {
         extended: false
       }))
       app.post('/' + uploadPath, (req, response) => {
+        // 修正卡片没有等号的问题
         for (let key in req.body) {
           let res = key + req.body[key];
           res = res.replace(/\\\\/g, '\\')
@@ -201,6 +202,18 @@ export class BotSDK {
           let resData = (getFormatData(obj) as any)
           // console.log(resData)
           if (resData && resData.success && resData.robot !== resData.fromUser) {
+            if((resData.rawMessage as string).startsWith('[customNode,key')){
+              let tempSplit = (resData.rawMessage as string).split('[customNode,key')
+              if(tempSplit[1][0]!='='){
+                resData.rawMessage = '[customNode,key' + '=' + tempSplit[1];
+              }
+            }
+            if((resData.rawMessage as string).startsWith('[pic,hash')){
+              let tempSplit = (resData.rawMessage as string).split('[pic,hash')
+              if(tempSplit[1][0]!='='){
+                resData.rawMessage = '[pic,hash' + '=' + tempSplit[1];
+              }
+            }
             // 获取 bot 对象并正确将消息分发下去
             let botArray = this.botList.get(String(resData.robot));
             if (botArray) {
@@ -259,6 +272,7 @@ export class BotSDK {
             let botArray = this.botList.get(String(resData.robot));
             if (botArray) {
               botArray.forEach(bot => {
+                console.log('ws:', resData)
                 bot.fire(resData.type, resData)
               })
             }

@@ -257,7 +257,9 @@ export class Robot extends Event {
         anonymous,
         type
       })
-    )
+    ).catch(err=>{
+      console.log('错误',err)
+    })
   }
 
   /**
