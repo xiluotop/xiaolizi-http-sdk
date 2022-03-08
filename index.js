@@ -259,7 +259,7 @@ class BotSDK {
                 ws.on('message', (message) => {
                     if (message.toString() == '{"type":"heartbeatreply"}') {
                         // 返回的心跳检测数据
-                        console.log(message.toString());
+                        // console.log(message.toString())
                         isReceiveHeart = true;
                         return;
                     }
@@ -283,10 +283,8 @@ class BotSDK {
                         if (obj.fromqq && obj.fromqq.qq == obj.logonqq) {
                             continue;
                         }
-                        // console.log(obj)
                         // 遍历数据包然后分发下去且过滤掉自己发送的消息
                         let resData = getFormatData(obj);
-                        // console.log(resData)
                         if (resData && resData.success && resData.robot !== resData.fromUser) {
                             // 获取 bot 对象并正确将消息分发下去
                             let botArray = this.botList.get(String(resData.robot));
@@ -310,10 +308,10 @@ class BotSDK {
             };
             let timeRepeatFun = () => {
                 setTimeout(timeRepeatFun, 5000);
-                timeCount += 5;
-                console.log('----------------------------------');
-                console.log('send heart , ws hold ' + timeCount + 's ...');
                 try {
+                    timeCount += 5;
+                    // console.log('----------------------------------')
+                    // console.log('send heart , ws hold ' + timeCount + 's ...')
                     ws.send(`method=heartbeat&user=${user}&timestamp=${timeStamp}&signature=${md5_1.default(user + "/ws" + md5_1.default(pass) + timeStamp.toString())}`);
                 }
                 catch (error) {
@@ -321,7 +319,7 @@ class BotSDK {
                 }
                 isReceiveHeart = false;
                 setTimeout(() => {
-                    // 收不到心跳 3s 后进行重连
+                    // 收不到心跳 1s 后进行重连
                     if (!isReceiveHeart) {
                         initWs();
                     }
