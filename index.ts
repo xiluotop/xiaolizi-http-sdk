@@ -5,7 +5,6 @@ import express from 'express'
 import md5 from 'md5'
 import bp from 'body-parser'
 import WebSocket from 'ws'
-import { time } from "console";
 
 /* **************************************************************
  * 机器人的主类
@@ -22,6 +21,18 @@ import { time } from "console";
 function unicode2string(unicode: string) {
   let res = unicode.replace(/\\\\/g, '\\');
   return res ? res : '[]';
+}
+
+// 处理一些无法被 JSON 解析的特殊字符例如 ASCII 为 0~28 的
+function dealSomeStr(strCode: string) {
+  let obj = strCode.split('');
+  obj.forEach((item, index) => {
+    if (item.charCodeAt(0) <= 28) {
+      obj[index] = ''
+    }
+  })
+
+  return obj.join('')
 }
 
 /**
@@ -162,11 +173,12 @@ export class BotSDK {
         if (response.data && 'string' == typeof response.data) {
           let res = response.data.split('\n');
           res.forEach((elm, index) => {
-            res[index] = JSON.parse(unicode2string(elm));
+
+            res[index] = JSON.parse(unicode2string(dealSomeStr(elm)));
           });
           return res;
         }
-        returnData = response.data ? [JSON.parse(unicode2string(JSON.stringify(response.data)))] : [];
+        returnData = response.data ? [JSON.parse(dealSomeStr(unicode2string(JSON.stringify(response.data))))] : [];
         if (returnData.length == 1) {
           returnData = returnData[0];
         }
@@ -188,11 +200,17 @@ export class BotSDK {
         extended: false
       }))
       app.post('/' + uploadPath, (req, response) => {
-        // 修正卡片没有等号的问题
+
         for (let key in req.body) {
-          let res = key + req.body[key];
+          let res: any = key + req.body[key];
           res = res.replace(/\\\\/g, '\\')
-          let obj = JSON.parse(res);
+          let obj = null;
+          try {
+            obj = JSON.parse(dealSomeStr(res));
+          } catch (error) {
+            console.log('去你码的报错：', error);
+            return;
+          }
           // 排除掉来自机器人的消息
           if (obj.fromqq && obj.fromqq.qq == obj.logonqq) {
             continue
@@ -202,15 +220,16 @@ export class BotSDK {
           let resData = (getFormatData(obj) as any)
           // console.log(resData)
           if (resData && resData.success && resData.robot !== resData.fromUser) {
-            if((resData.rawMessage as string).startsWith('[customNode,key')){
+            // 修正卡片没有等号的问题
+            if ((resData.rawMessage as string).startsWith('[customNode,key')) {
               let tempSplit = (resData.rawMessage as string).split('[customNode,key')
-              if(tempSplit[1][0]!='='){
+              if (tempSplit[1][0] != '=') {
                 resData.rawMessage = '[customNode,key' + '=' + tempSplit[1];
               }
             }
-            if((resData.rawMessage as string).startsWith('[pic,hash')){
+            if ((resData.rawMessage as string).startsWith('[pic,hash')) {
               let tempSplit = (resData.rawMessage as string).split('[pic,hash')
-              if(tempSplit[1][0]!='='){
+              if (tempSplit[1][0] != '=') {
                 resData.rawMessage = '[pic,hash' + '=' + tempSplit[1];
               }
             }
@@ -233,71 +252,90 @@ export class BotSDK {
       let timeStamp = Math.round(new Date().getTime() / 1000)
       let ws: WebSocket = null;
       let timeCount = 0;
+      let isReceiveHeart: boolean = false;
       // 没有上报地址则使用 ws
       let initWs = () => {
+        if (ws) {
+          ws.removeAllListeners()
+          ws.terminate();
+        }
         timeCount = 0;
-        ws = new WebSocket(`ws://localhost:${url.split(':')[2]}/ws?user=${user}&timestamp=${timeStamp}&signature=${md5(user + "/ws" + md5(pass) + timeStamp.toString())}`)
+        ws = new WebSocket(`${url.replace('http', 'ws')}/ws?user=${user}&timestamp=${timeStamp}&signature=${md5(user + "/ws" + md5(pass) + timeStamp.toString())}`)
         console.log('ws started ...');
-      }
-      initWs();
-      // 接受信息
-      ws.on('message', (message: String) => {
-        if (message.toString() == '{"type":"heartbeatreply"}') {
-          // 返回的心跳检测数据
-          return;
-        }
-        let data = message.toString().replace(/\\\\/g, '\\');
-        let originData: Array<any> = null;
-        if (data && 'string' == typeof data) {
-          let res = data.split('\n')
-          res.forEach((elm, index) => {
-            res[index] = JSON.parse(unicode2string(elm))
-          })
-          originData = res
-        } else {
-          originData = data ? [JSON.parse(unicode2string(JSON.stringify(data)))] : [];
-        }
-        for (let key in originData) {
-          let obj = originData[key];
-          // 排除掉来自机器人的消息
-          if (obj.fromqq && obj.fromqq.qq == obj.logonqq) {
-            continue
+        // 接受信息
+        ws.on('message', (message: String) => {
+          if (message.toString() == '{"type":"heartbeatreply"}') {
+            // 返回的心跳检测数据
+            // console.log(message.toString())
+            isReceiveHeart = true
+            return;
           }
-          // console.log(obj)
-          // 遍历数据包然后分发下去且过滤掉自己发送的消息
-          let resData = (getFormatData(obj) as any)
-          // console.log(resData)
-          if (resData && resData.success && resData.robot !== resData.fromUser) {
-            // 获取 bot 对象并正确将消息分发下去
-            let botArray = this.botList.get(String(resData.robot));
-            if (botArray) {
-              botArray.forEach(bot => {
-                console.log('ws:', resData)
-                bot.fire(resData.type, resData)
-              })
+          let data = message.toString().replace(/\\\\/g, '\\');
+          let originData: Array<any> = null;
+          if (data && 'string' == typeof data) {
+            let res = data.split('\n')
+            res.forEach((elm, index) => {
+              // 测试崩溃
+              JSON.parse(unicode2string(elm));
+              res[index] = JSON.parse(dealSomeStr(unicode2string(elm)))
+            })
+            originData = res
+          } else {
+            originData = data ? [JSON.parse(dealSomeStr(unicode2string(JSON.stringify(data))))] : [];
+          }
+          for (let key in originData) {
+            let obj = originData[key];
+            // 排除掉来自机器人的消息
+            if (obj.fromqq && obj.fromqq.qq == obj.logonqq) {
+              continue
+            }
+            // 遍历数据包然后分发下去且过滤掉自己发送的消息
+            let resData = (getFormatData(obj) as any)
+            if (resData && resData.success && resData.robot !== resData.fromUser) {
+              // 获取 bot 对象并正确将消息分发下去
+              let botArray = this.botList.get(String(resData.robot));
+              if (botArray) {
+                botArray.forEach(bot => {
+                  bot.fire(resData.type, resData)
+                })
+              }
             }
           }
-        }
-      })
-      ws.on('error', error => {
-        console.log('Error:', error)
-        console.log('connect closed and will reconnect ws...');
-        if (ws.CLOSED) {
+        })
+        ws.on('error', error => {
+          // console.log('Error:', error)
+          console.log('connect closed and will reconnect ws...');
+          initWs();
+        })
+        ws.on('close', info => {
+          console.log('connect closed ... info:' + info + ' , will reconnect ws...');
+          initWs();
+        })
+      }
+
+      let timeRepeatFun = () => {
+        setTimeout(timeRepeatFun, 5000);
+        try {
+          timeCount += 5;
+          // console.log('----------------------------------')
+          // console.log('send heart , ws hold ' + timeCount + 's ...')
+          ws.send(`method=heartbeat&user=${user}&timestamp=${timeStamp}&signature=${md5(user + "/ws" + md5(pass) + timeStamp.toString())}`)
+        } catch (error) {
           initWs();
         }
-      })
-      ws.on('close', info => {
-        console.log('connect closed ... info:' + info + ' , will reconnect ws...');
-        initWs();
-      })
-
-      setInterval(() => {
-        timeCount += 5;
-        if (ws.readyState == ws.OPEN) {
-          ws.send(`method=heartbeat&user=${user}&timestamp=${timeStamp}&signature=${md5(user + "/ws" + md5(pass) + timeStamp.toString())}`)
-          // console.log('send heart , ws hold '+ timeCount + 's ...')
-        }
+        isReceiveHeart = false;
+        setTimeout(() => {
+          // 收不到心跳 1s 后进行重连
+          if (!isReceiveHeart) {
+            initWs();
+          }
+        }, 1000)
+      }
+      setTimeout(() => {
+        timeRepeatFun();
       }, 5000)
+
+      initWs();
     }
   }
 

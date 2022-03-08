@@ -25,6 +25,16 @@ function unicode2string(unicode) {
     let res = unicode.replace(/\\\\/g, '\\');
     return res ? res : '[]';
 }
+// 处理一些无法被 JSON 解析的特殊字符例如 ASCII 为 0~28 的
+function dealSomeStr(strCode) {
+    let obj = strCode.split('');
+    obj.forEach((item, index) => {
+        if (item.charCodeAt(0) <= 28) {
+            obj[index] = '';
+        }
+    });
+    return obj.join('');
+}
 /**
  * @param {Object} dataPack 数据包
  * @描述 格式化数据包规范
@@ -158,11 +168,11 @@ class BotSDK {
                 if (response.data && 'string' == typeof response.data) {
                     let res = response.data.split('\n');
                     res.forEach((elm, index) => {
-                        res[index] = JSON.parse(unicode2string(elm));
+                        res[index] = JSON.parse(unicode2string(dealSomeStr(elm)));
                     });
                     return res;
                 }
-                returnData = response.data ? [JSON.parse(unicode2string(JSON.stringify(response.data)))] : [];
+                returnData = response.data ? [JSON.parse(dealSomeStr(unicode2string(JSON.stringify(response.data))))] : [];
                 if (returnData.length == 1) {
                     returnData = returnData[0];
                 }
@@ -183,11 +193,17 @@ class BotSDK {
                 extended: false
             }));
             app.post('/' + uploadPath, (req, response) => {
-                // 修正卡片没有等号的问题
                 for (let key in req.body) {
                     let res = key + req.body[key];
                     res = res.replace(/\\\\/g, '\\');
-                    let obj = JSON.parse(res);
+                    let obj = null;
+                    try {
+                        obj = JSON.parse(dealSomeStr(res));
+                    }
+                    catch (error) {
+                        console.log('去你码的报错：', error);
+                        return;
+                    }
                     // 排除掉来自机器人的消息
                     if (obj.fromqq && obj.fromqq.qq == obj.logonqq) {
                         continue;
@@ -197,6 +213,7 @@ class BotSDK {
                     let resData = getFormatData(obj);
                     // console.log(resData)
                     if (resData && resData.success && resData.robot !== resData.fromUser) {
+                        // 修正卡片没有等号的问题
                         if (resData.rawMessage.startsWith('[customNode,key')) {
                             let tempSplit = resData.rawMessage.split('[customNode,key');
                             if (tempSplit[1][0] != '=') {
@@ -228,71 +245,92 @@ class BotSDK {
             let timeStamp = Math.round(new Date().getTime() / 1000);
             let ws = null;
             let timeCount = 0;
+            let isReceiveHeart = false;
             // 没有上报地址则使用 ws
             let initWs = () => {
+                if (ws) {
+                    ws.removeAllListeners();
+                    ws.terminate();
+                }
                 timeCount = 0;
-                ws = new ws_1.default(`ws://localhost:${url.split(':')[2]}/ws?user=${user}&timestamp=${timeStamp}&signature=${md5_1.default(user + "/ws" + md5_1.default(pass) + timeStamp.toString())}`);
+                ws = new ws_1.default(`${url.replace('http', 'ws')}/ws?user=${user}&timestamp=${timeStamp}&signature=${md5_1.default(user + "/ws" + md5_1.default(pass) + timeStamp.toString())}`);
                 console.log('ws started ...');
-            };
-            initWs();
-            // 接受信息
-            ws.on('message', (message) => {
-                if (message.toString() == '{"type":"heartbeatreply"}') {
-                    // 返回的心跳检测数据
-                    return;
-                }
-                let data = message.toString().replace(/\\\\/g, '\\');
-                let originData = null;
-                if (data && 'string' == typeof data) {
-                    let res = data.split('\n');
-                    res.forEach((elm, index) => {
-                        res[index] = JSON.parse(unicode2string(elm));
-                    });
-                    originData = res;
-                }
-                else {
-                    originData = data ? [JSON.parse(unicode2string(JSON.stringify(data)))] : [];
-                }
-                for (let key in originData) {
-                    let obj = originData[key];
-                    // 排除掉来自机器人的消息
-                    if (obj.fromqq && obj.fromqq.qq == obj.logonqq) {
-                        continue;
+                // 接受信息
+                ws.on('message', (message) => {
+                    if (message.toString() == '{"type":"heartbeatreply"}') {
+                        // 返回的心跳检测数据
+                        console.log(message.toString());
+                        isReceiveHeart = true;
+                        return;
                     }
-                    // console.log(obj)
-                    // 遍历数据包然后分发下去且过滤掉自己发送的消息
-                    let resData = getFormatData(obj);
-                    // console.log(resData)
-                    if (resData && resData.success && resData.robot !== resData.fromUser) {
-                        // 获取 bot 对象并正确将消息分发下去
-                        let botArray = this.botList.get(String(resData.robot));
-                        if (botArray) {
-                            botArray.forEach(bot => {
-                                console.log('ws:', resData);
-                                bot.fire(resData.type, resData);
-                            });
+                    let data = message.toString().replace(/\\\\/g, '\\');
+                    let originData = null;
+                    if (data && 'string' == typeof data) {
+                        let res = data.split('\n');
+                        res.forEach((elm, index) => {
+                            // 测试崩溃
+                            JSON.parse(unicode2string(elm));
+                            res[index] = JSON.parse(dealSomeStr(unicode2string(elm)));
+                        });
+                        originData = res;
+                    }
+                    else {
+                        originData = data ? [JSON.parse(dealSomeStr(unicode2string(JSON.stringify(data))))] : [];
+                    }
+                    for (let key in originData) {
+                        let obj = originData[key];
+                        // 排除掉来自机器人的消息
+                        if (obj.fromqq && obj.fromqq.qq == obj.logonqq) {
+                            continue;
+                        }
+                        // console.log(obj)
+                        // 遍历数据包然后分发下去且过滤掉自己发送的消息
+                        let resData = getFormatData(obj);
+                        // console.log(resData)
+                        if (resData && resData.success && resData.robot !== resData.fromUser) {
+                            // 获取 bot 对象并正确将消息分发下去
+                            let botArray = this.botList.get(String(resData.robot));
+                            if (botArray) {
+                                botArray.forEach(bot => {
+                                    bot.fire(resData.type, resData);
+                                });
+                            }
                         }
                     }
+                });
+                ws.on('error', error => {
+                    // console.log('Error:', error)
+                    console.log('connect closed and will reconnect ws...');
+                    initWs();
+                });
+                ws.on('close', info => {
+                    console.log('connect closed ... info:' + info + ' , will reconnect ws...');
+                    initWs();
+                });
+            };
+            let timeRepeatFun = () => {
+                setTimeout(timeRepeatFun, 5000);
+                timeCount += 5;
+                console.log('----------------------------------');
+                console.log('send heart , ws hold ' + timeCount + 's ...');
+                try {
+                    ws.send(`method=heartbeat&user=${user}&timestamp=${timeStamp}&signature=${md5_1.default(user + "/ws" + md5_1.default(pass) + timeStamp.toString())}`);
                 }
-            });
-            ws.on('error', error => {
-                console.log('Error:', error);
-                console.log('connect closed and will reconnect ws...');
-                if (ws.CLOSED) {
+                catch (error) {
                     initWs();
                 }
-            });
-            ws.on('close', info => {
-                console.log('connect closed ... info:' + info + ' , will reconnect ws...');
-                initWs();
-            });
-            setInterval(() => {
-                timeCount += 5;
-                if (ws.readyState == ws.OPEN) {
-                    ws.send(`method=heartbeat&user=${user}&timestamp=${timeStamp}&signature=${md5_1.default(user + "/ws" + md5_1.default(pass) + timeStamp.toString())}`);
-                    // console.log('send heart , ws hold '+ timeCount + 's ...')
-                }
+                isReceiveHeart = false;
+                setTimeout(() => {
+                    // 收不到心跳 3s 后进行重连
+                    if (!isReceiveHeart) {
+                        initWs();
+                    }
+                }, 1000);
+            };
+            setTimeout(() => {
+                timeRepeatFun();
             }, 5000);
+            initWs();
         }
     }
     /**
