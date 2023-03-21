@@ -1,3 +1,5 @@
+# 本项目已停止维护，你仍可以继续使用本项目，但建议尽快迁移至功能更丰富、文档更完善的 [go-cqhttp](https://github.com/Mrs4s/go-cqhttp)、[go-cqhttp-jsbot](https://github.com/xiluotop/go-cqhttp-jsbot) 等框架
+
 # 小栗子 http 插件 node.js API更新记录
 
   更新内容 api 示例使用方法见 test.js 代码
@@ -12,7 +14,7 @@
   // 创建一个监听 bot 对象（已挂载至框架内的 qq）
   let bot = botSDK.createBot(123456789);
   // -------------
-  ... 可在 test.js 里参照 api 示例使用 bot.xxx 形式注册或调用相关指令功能。
+  可在 test.js 里参照 api 示例使用 bot.xxx 形式注册或调用相关指令功能。
   // -------------
   ```
 
